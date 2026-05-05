@@ -2,17 +2,16 @@
 from __future__ import annotations
 
 import json
-import sys
 
 import typer
-from prompt_toolkit import PromptSession
-from prompt_toolkit.history import FileHistory
 from rich.console import Console
 from rich.table import Table
 
 from gsheets_agent import auth as auth_mod
-from gsheets_agent.agent import AgentSession
 from gsheets_agent.config import CREDENTIALS_DIR, OPENAI_API_KEY
+
+# NOTE: heavy imports (openai, googleapiclient, prompt_toolkit) are deferred to
+# inside command bodies so light commands like `gsa accounts` start fast.
 
 app = typer.Typer(no_args_is_help=True, add_completion=False, help="CLI AI agent for Google Sheets + Gmail.")
 auth_app = typer.Typer(no_args_is_help=True, help="Manage Google account authorizations.")
@@ -95,6 +94,7 @@ def _print_event(event: str, payload: dict) -> None:
 def ask(prompt: str = typer.Argument(..., help="One-shot question for the agent.")):
     """Send a single prompt and print the response."""
     _require_openai_key()
+    from gsheets_agent.agent import AgentSession  # heavy: pulls openai + googleapi
     session = AgentSession(on_event=_print_event)
     reply = session.send(prompt)
     console.print()
@@ -107,6 +107,10 @@ def chat():
     _require_openai_key()
     if not auth_mod.list_accounts():
         console.print("[yellow]No authorized Google accounts. Add one with: gsa auth add <label>[/yellow]")
+
+    from gsheets_agent.agent import AgentSession
+    from prompt_toolkit import PromptSession
+    from prompt_toolkit.history import FileHistory
 
     session = AgentSession(on_event=_print_event)
     history_file = CREDENTIALS_DIR / ".chat_history"

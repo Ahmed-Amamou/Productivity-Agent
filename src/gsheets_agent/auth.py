@@ -13,17 +13,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import Flow, InstalledAppFlow
-from googleapiclient.discovery import build
-
 from gsheets_agent.config import (
     CREDENTIALS_DIR,
     OAUTH_CLIENT_FILE,
     SCOPES,
     token_path,
 )
+
+# Heavy google-* imports are deferred into the functions that need them.
+# `gsa accounts` only triggers the lightweight `google.oauth2.credentials` chain.
 
 
 def _is_headless() -> bool:
@@ -46,7 +44,7 @@ class Account:
         return f"{self.label} <{self.email}>"
 
 
-def _save_credentials(label: str, creds: Credentials) -> None:
+def _save_credentials(label: str, creds) -> None:
     path = token_path(label)
     path.write_text(creds.to_json())
     try:
@@ -55,7 +53,10 @@ def _save_credentials(label: str, creds: Credentials) -> None:
         pass  # Windows / WSL on NTFS: best-effort.
 
 
-def _load_credentials(label: str) -> Optional[Credentials]:
+def _load_credentials(label: str):
+    from google.auth.transport.requests import Request
+    from google.oauth2.credentials import Credentials
+
     path = token_path(label)
     if not path.exists():
         return None
@@ -66,13 +67,16 @@ def _load_credentials(label: str) -> Optional[Credentials]:
     return creds
 
 
-def _email_for(creds: Credentials) -> str:
+def _email_for(creds) -> str:
+    from googleapiclient.discovery import build  # heavy import, deferred
+
     svc = build("oauth2", "v2", credentials=creds, cache_discovery=False)
     info = svc.userinfo().get().execute()
     return info.get("email", "unknown")
 
 
 def _add_account_manual(label: str) -> Account:
+    from google_auth_oauthlib.flow import Flow  # heavy import, deferred
     """Headless OAuth: print URL, user pastes back the redirect URL from their browser.
 
     Doesn't depend on WSL/Windows localhost forwarding. The user authorizes in
@@ -124,6 +128,8 @@ def add_account(label: str) -> Account:
     if _is_headless():
         return _add_account_manual(label)
 
+    from google_auth_oauthlib.flow import InstalledAppFlow  # heavy import, deferred
+
     flow = InstalledAppFlow.from_client_secrets_file(str(OAUTH_CLIENT_FILE), SCOPES)
     creds = flow.run_local_server(
         port=0,
@@ -166,7 +172,7 @@ def list_accounts() -> list[Account]:
     return accounts
 
 
-def get_credentials(label: str) -> Credentials:
+def get_credentials(label: str):
     creds = _load_credentials(label)
     if not creds:
         raise RuntimeError(
