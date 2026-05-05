@@ -8,12 +8,14 @@ from __future__ import annotations
 
 import json
 import os
+import platform
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google_auth_oauthlib.flow import Flow, InstalledAppFlow
 from googleapiclient.discovery import build
 
 from gsheets_agent.config import (
@@ -22,6 +24,17 @@ from gsheets_agent.config import (
     SCOPES,
     token_path,
 )
+
+
+def _is_headless() -> bool:
+    """True when there's no usable browser (WSL, SSH session, no DISPLAY)."""
+    if "microsoft" in platform.uname().release.lower():
+        return True  # WSL
+    if not os.environ.get("DISPLAY") and platform.system() == "Linux":
+        return True
+    if os.environ.get("SSH_CONNECTION") or os.environ.get("SSH_TTY"):
+        return True
+    return False
 
 
 @dataclass
@@ -59,15 +72,57 @@ def _email_for(creds: Credentials) -> str:
     return info.get("email", "unknown")
 
 
+def _add_account_manual(label: str) -> Account:
+    """Headless OAuth: print URL, user pastes back the redirect URL from their browser.
+
+    Doesn't depend on WSL/Windows localhost forwarding. The user authorizes in
+    their host browser; the browser is redirected to http://localhost/?code=...
+    which fails to load — the user copies that full URL from the address bar
+    and pastes it here.
+    """
+    flow = Flow.from_client_secrets_file(str(OAUTH_CLIENT_FILE), SCOPES)
+    flow.redirect_uri = "http://localhost"  # must be allowed for Desktop OAuth clients
+
+    auth_url, _ = flow.authorization_url(
+        access_type="offline",
+        prompt="consent",
+        include_granted_scopes="true",
+    )
+
+    print()
+    print("=" * 78)
+    print("Open this URL in a browser on your host machine and sign in:")
+    print()
+    print(f"  {auth_url}")
+    print()
+    print("After approving, the browser will try to load 'http://localhost/?code=...'")
+    print("and show 'site can't be reached'. That is expected. Copy the FULL URL")
+    print("from the browser's address bar and paste it below.")
+    print("=" * 78)
+    print()
+
+    pasted = input("Paste the redirect URL here: ").strip()
+    if not pasted:
+        raise RuntimeError("No URL provided.")
+    flow.fetch_token(authorization_response=pasted)
+    creds = flow.credentials
+    _save_credentials(label, creds)
+    email = _email_for(creds)
+    return Account(label=label, email=email)
+
+
 def add_account(label: str) -> Account:
-    """Run the loopback OAuth flow and persist the token."""
+    """Authorize a Google account. Uses loopback when possible, manual paste in WSL/SSH."""
     if not OAUTH_CLIENT_FILE.exists():
         raise FileNotFoundError(
             f"OAuth client file not found at {OAUTH_CLIENT_FILE}. "
             "Download it from Google Cloud Console (Desktop app credentials)."
         )
+
+    if _is_headless():
+        return _add_account_manual(label)
+
     flow = InstalledAppFlow.from_client_secrets_file(str(OAUTH_CLIENT_FILE), SCOPES)
-    # port=0 picks a random free local port; access_type=offline to get a refresh token.
     creds = flow.run_local_server(
         port=0,
         access_type="offline",
