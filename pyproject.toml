@@ -15,8 +15,18 @@ dependencies = [
     "prompt-toolkit>=3.0.48",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.3",
+    "pytest-mock>=3.14.0",
+]
+
 [project.scripts]
 gsa = "gsheets_agent.cli:app"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
 
 [build-system]
 requires = ["setuptools>=68"]
