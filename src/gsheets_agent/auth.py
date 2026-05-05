@@ -104,6 +104,8 @@ def _add_account_manual(label: str) -> Account:
     pasted = input("Paste the redirect URL here: ").strip()
     if not pasted:
         raise RuntimeError("No URL provided.")
+    # Desktop OAuth uses http://localhost; oauthlib otherwise refuses non-HTTPS.
+    os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
     flow.fetch_token(authorization_response=pasted)
     creds = flow.credentials
     _save_credentials(label, creds)
