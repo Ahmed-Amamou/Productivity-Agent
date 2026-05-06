@@ -250,10 +250,22 @@ def share_spreadsheet(
     return {"account": label, "permission": perm}
 
 
+def trash_file(spreadsheet_id: str, account: str | None = None) -> dict:
+    """Move a Drive file (e.g. a spreadsheet) to Trash. Reversible."""
+    label = _account(account)
+    sid = _normalize_id(spreadsheet_id)
+    drive = _drive_service(label)
+    res = drive.files().update(
+        fileId=sid, body={"trashed": True}, fields="id,trashed,name"
+    ).execute()
+    return {"account": label, **res}
+
+
 # ---------- dispatcher + OpenAI tool schemas ----------
 
 _DISPATCH = {
     "drive_list_spreadsheets": list_spreadsheets,
+    "drive_trash_file": trash_file,
     "sheets_create": create_spreadsheet,
     "sheets_get": get_spreadsheet,
     "sheets_read_range": read_range,
