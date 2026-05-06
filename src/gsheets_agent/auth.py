@@ -110,6 +110,8 @@ def _add_account_manual(label: str) -> Account:
         raise RuntimeError("No URL provided.")
     # Desktop OAuth uses http://localhost; oauthlib otherwise refuses non-HTTPS.
     os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
+    # Google may return merged scopes (old + new) when include_granted_scopes is used.
+    os.environ.setdefault("OAUTHLIB_RELAX_TOKEN_SCOPE", "1")
     flow.fetch_token(authorization_response=pasted)
     creds = flow.credentials
     _save_credentials(label, creds)
@@ -128,6 +130,7 @@ def add_account(label: str) -> Account:
     if _is_headless():
         return _add_account_manual(label)
 
+    os.environ.setdefault("OAUTHLIB_RELAX_TOKEN_SCOPE", "1")
     from google_auth_oauthlib.flow import InstalledAppFlow  # heavy import, deferred
 
     flow = InstalledAppFlow.from_client_secrets_file(str(OAUTH_CLIENT_FILE), SCOPES)
