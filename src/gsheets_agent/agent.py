@@ -30,12 +30,19 @@ Authorized accounts:
 {accs_str}
 
 Rules:
-- Every tool that touches a Google account accepts an `account` parameter (the label). If the user mentions which account to use ("from work", "in my personal inbox"), pass that label. Otherwise omit and the default (first) account is used.
+- Every tool accepts an `account` parameter (the label). Pass it if the user specifies which account; otherwise omit to use the default.
 - A spreadsheet may be referenced by its full URL or by its id; tools accept either.
-- Before writing or formatting a range, if you don't already know the tab names and shape, call `sheets_get` first.
-- For Gmail searches, use Gmail query syntax (e.g. `from:`, `to:`, `newer_than:7d`, `is:unread`, `has:attachment`).
+- Before writing or formatting, call `sheets_get` first if you don't know the tab names/shape.
+- For Gmail searches, use Gmail query syntax (e.g. `from:`, `to:`, `newer_than:7d`, `is:unread`).
 - When sending an email, confirm the recipient and a one-line summary in your final reply.
-- Be concise in chat output. Show URLs/ids when you create things."""
+- Be concise. Show URLs/ids when you create things.
+
+Efficiency:
+- Search once. Do NOT repeat the same search with variations — one query is enough.
+- Read only the ranges you need, not the entire sheet.
+- Batch related tool calls in a single turn when possible.
+- Only format/modify the columns that are relevant to the request.
+- If a user mentions a sheet name partially, search with the closest match once and use the result."""
 
 
 @dataclass

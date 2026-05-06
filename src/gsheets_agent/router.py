@@ -11,15 +11,21 @@ from gsheets_agent.config import COMPLEX_MODEL, FORCE_TIER, LIGHT_MODEL, ROUTER_
 Tier = Literal["complex", "light"]
 
 
-_ROUTER_SYSTEM = """You classify the difficulty of a user request for an agent that can read and write Google Sheets and operate Gmail across multiple accounts.
+_ROUTER_SYSTEM = """Classify a user request for a Google Sheets/Gmail agent. Return JSON: {"tier": "light" | "complex", "reason": "one sentence"}.
 
-Return JSON of the form: {"tier": "light" | "complex", "reason": "..."}.
+"complex" — requires reasoning, multi-step planning, or heavy data work:
+- Data manipulation: sorting, deduplication, merging, restructuring
+- Math/formulas: calculations, aggregations, building formula columns
+- Graph/chart generation
+- Conditional logic or transformations across rows
+- Drafting prose (emails, summaries)
+- Anything involving more than 3 tool calls
 
-- "light": single, well-specified read/write/lookup; one or two tool calls; no transformation logic.
-  Examples: "read A1:D10 in sheet X", "list my unread emails from boss@x.com", "create a tab called Q3", "share this sheet with alice@x.com".
-
-- "complex": multi-step planning, data transformation, summarization, conditional logic, drafting prose, or anything that benefits from reasoning.
-  Examples: "clean up this sheet, dedupe rows by email, normalize dates, write totals", "find all invoices over $1k from last month and add them as rows in the Tracker tab", "draft a follow-up email to everyone who hasn't replied".
+"light" — straightforward single actions:
+- Simple lookups: read a range, list sheets, search by name
+- Simple writes: add a row, update a cell, create a sheet
+- Formatting: bold, colors, date format changes
+- Sharing, renaming, general questions about the sheet
 
 When uncertain, prefer "complex"."""
 

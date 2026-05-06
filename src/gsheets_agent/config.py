@@ -15,9 +15,9 @@ OAUTH_CLIENT_FILE = Path(
 
 # OpenAI
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-COMPLEX_MODEL = os.environ.get("COMPLEX_MODEL", "gpt-5")
-LIGHT_MODEL = os.environ.get("LIGHT_MODEL", "gpt-5-mini")
-ROUTER_MODEL = os.environ.get("ROUTER_MODEL", "gpt-5-nano")
+COMPLEX_MODEL = os.environ.get("COMPLEX_MODEL", "gpt-5.5")
+LIGHT_MODEL = os.environ.get("LIGHT_MODEL", "gpt-4o-mini")
+ROUTER_MODEL = os.environ.get("ROUTER_MODEL", "gpt-4o-mini")
 FORCE_TIER = os.environ.get("FORCE_TIER")  # "complex" | "light" | None
 
 # Google API scopes - request only what we need.
@@ -25,7 +25,7 @@ FORCE_TIER = os.environ.get("FORCE_TIER")  # "complex" | "light" | None
 # Gmail: read, send, modify (labels). NOT including https://mail.google.com/ which allows permanent delete.
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive.file",
+    "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.send",
     "https://www.googleapis.com/auth/gmail.modify",
